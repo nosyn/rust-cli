@@ -5,6 +5,7 @@ use std::io::{self, BufRead, BufReader};
 
 pub struct Config {
     files: Vec<String>,
+    dollar_sign: bool,
     number_lines: bool,
     number_nonblank_lines: bool,
 }
@@ -24,10 +25,17 @@ pub fn get_args() -> MyResult<Config> {
                 .default_value("-"),
         )
         .arg(
+            Arg::with_name("dollar-sign")
+                .short("e")
+                .long("dollar-sign")
+                .help("Display a dollar sign ('$') at the end of each line.")
+                .takes_value(false),
+        )
+        .arg(
             Arg::with_name("number-nonblank")
                 .short("b")
                 .long("number-nonblank")
-                .help("number nonempty output lines, overrides -n equivalent to -vE")
+                .help("Number the non-blank output lines, starting at 1.")
                 .takes_value(false),
         )
         .arg(
@@ -42,6 +50,7 @@ pub fn get_args() -> MyResult<Config> {
 
     Ok(Config {
         files: matches.values_of_lossy("files").unwrap(),
+        dollar_sign: matches.is_present("dollar-sign"),
         number_lines: matches.is_present("number"),
         number_nonblank_lines: matches.is_present("number-nonblank"),
     })
@@ -53,6 +62,7 @@ pub fn run(config: Config) -> MyResult<()> {
             Err(err) => eprintln!("Failed to open {}: {}", filename, err),
             Ok(file) => {
                 let mut count = 1;
+                let dollar_sign_text = if config.dollar_sign { "$" } else { "" };
                 for line_result in file.lines() {
                     match line_result {
                         Err(err) => eprintln!("Failed to read line: {}", err),
@@ -60,10 +70,10 @@ pub fn run(config: Config) -> MyResult<()> {
                             if (config.number_nonblank_lines && !line.is_empty())
                                 || config.number_lines
                             {
-                                println!("{:>6}\t{}", count, line);
+                                println!("{:>6}\t{}", count, line + dollar_sign_text);
                                 count += 1;
                             } else {
-                                println!("{}", line);
+                                println!("{}", line + dollar_sign_text);
                             }
                         }
                     }
